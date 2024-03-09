@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meu Diário de Treino</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" />
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+<link href="style.css" rel="stylesheet">
+
+<!-- Firebase SDK e função onAuthStateChanged -->
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+<script src="../firebase-config.js"></script>
+</head>
+<body>
+  
+
+<!-- Barra lateral -->
+<div id="mySidebar" class="sidebar">
+  <a href="#" id="logoutBtn">Sair <i class="bi bi-box-arrow-right"></i></a>
+  <a href="#" id="changeAccountBtn">Trocar de Conta <i class="bi bi-arrow-repeat"></i></a>
+</div>
+
+
+<!-- Conteúdo principal -->
+<div class="container">
+  <div class="header">
+    <button id="prevDay" class="btn btn-primary"><i class="bi bi-arrow-left"></i></button>
+    <div class="date" id="currentDate"></div>
+    <button id="nextDay" class="btn btn-primary"><i class="bi bi-arrow-right"></i></button>
+  </div>
+  <div id="exercises">
+    <!-- Aqui serão adicionados os exercícios -->
+  </div>
+</div>
+
+
+<!-- Modal -->
+<div class="modal" id="editModal">
+  <div class="modal-dialog">
+    <div class="modal-content">
+
+      <!-- Modal Header -->
+      <div class="modal-header">
+        <h5 class="modal-title">Editar Série</h5>
+        <button type="button" class="btn-close" onclick="toggleEditModal('close')" aria-label="Close"></button>
+      </div>
+
+          <!-- Modal Body -->
+          <div class="modal-body">
+            <form id="edit-form">
+                <input type="hidden" name="exercicio">
+                <input type="hidden" name="serie">
+                <div class="mb-3">
+                    <label for="carga" class="form-label">Carga:</label>
+                    <input type="number" class="form-control" name="carga">
+                </div>
+                <div class="mb-3">
+                    <label for="repeticoes" class="form-label">Repetições:</label>
+                    <input type="number" class="form-control" name="repeticoes">
+                </div>
+                <div class="mb-3">
+                    <label for="percepcao" class="form-label">Percepção:</label>
+                    <input type="number" class="form-control" name="percepcao">
+                </div>
+                <button type="button" class="btn btn-primary" onclick="submitEdit(currentUserID)">Enviar</button>
+                <button type="button" class="btn btn-danger" onclick="deleteSeries(currentUserID)">Excluir Série</button>
+            </form>
+          </div>
+
+
+    </div>
+  </div>
+</div>
+
+<!-- Modal de adição de série -->
+<div class="modal" id="addSeriesModal">
+  <div class="modal-dialog">
+    <div class="modal-content">
+
+      <!-- Modal Header -->
+      <div class="modal-header">
+        <h5 class="modal-title">Adicionar Série</h5>
+        <button type="button" class="btn-close" onclick="closeAddSeriesModal()" aria-label="Close"></button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="modal-body">
+        <form id="add-series-form">
+          <input type="hidden" name="exercicio">
+          <div class="mb-3">
+            <label for="carga" class="form-label">Carga:</label>
+            <input type="number" class="form-control" name="carga">
+          </div>
+          <div class="mb-3">
+            <label for="repeticoes" class="form-label">Repetições:</label>
+            <input type="number" class="form-control" name="repeticoes">
+          </div>
+          <div class="mb-3">
+            <label for="percepcao" class="form-label">Percepção:</label>
+            <input type="number" class="form-control" name="percepcao">
+          </div>
+          <button type="button" class="btn btn-primary" onclick="submitAddSeries(currentUserID)">Adicionar</button>
+        </form>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Modal de adição de exercício -->
+<div class="modal" id="addExerciseModal">
+  <div class="modal-dialog">
+    <div class="modal-content">
+
+      <!-- Modal Header -->
+      <div class="modal-header">
+        <h5 class="modal-title">Adicionar Exercício</h5>
+        <button type="button" class="btn-close" onclick="toggleAddExerciseModal('close')" aria-label="Close"></button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="modal-body">
+        <form id="add-exercise-form">
+          <div class="mb-3">
+            <label for="exercicio" class="form-label">Nome do Exercício:</label>
+            <input type="text" class="form-control" name="exercicio">
+          </div>
+          <button type="button" class="btn btn-primary" onclick="submitAddExercise(currentUserID)">Adicionar</button>
+        </form>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+
+
+<!-- Modal de detalhes do exercício -->
+<div class="modal" id="exerciseDetailsModal">
+  <div class="modal-dialog">
+    <div class="modal-content">
+
+      <!-- Modal Header -->
+      <div class="modal-header">
+        <h5 class="modal-title">Detalhes do Exercício</h5>
+        <button type="button" class="btn-close" onclick="closeExerciseDetailsModal()" aria-label="Close"></button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="modal-body">
+        <form id="exercise-details-form">
+          <div class="mb-3">
+            <label for="editarNomeExercicio" class="form-label">Editar Nome do Exercício:</label>
+            <input type="text" class="form-control" id="editarNomeExercicio">
+          </div>
+          <div class="mb-3">
+            <button type="button" class="btn btn-danger" onclick="deleteExercise(currentUserID)">Deletar Exercício</button>
+          </div>
+          <button type="button" class="btn btn-primary" onclick="submitEditedExercise(currentUserID)">Salvar Alterações</button>
+        </form>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+
+
+<object type="text/html" data="modais.html" id="modalsContainer"></object>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dayjs"></script>
+<script src="modals.js"></script> 
+<script src="day.js"></script> 
+<script src="exercises.js"></script>
+ 
+
+<script>
+let currentUserID;
+  // Função para verificar se o usuário está autenticado
+  firebase.auth().onAuthStateChanged(function(user) {
+        if (!user) {
+            // Se o usuário não estiver autenticado, redireciona para a página de login
+            window.location.replace("login.html");
+        } else {
+            // Se o usuário estiver autenticado
+            currentUserID = user.uid;
+            fetchExercises(user.uid); // Chama a função fetchExercises passando o userId como argumento
+        }
+    });
+
+
+
+
+
+
+
+
+    
+  var sidebar = document.getElementById("mySidebar");
+
+  // Adiciona um evento de clique à barra lateral
+  sidebar.addEventListener("click", function(event) {
+    sidebar.classList.toggle('expanded'); // Adiciona ou remove a classe 'expanded'
+    event.stopPropagation(); // Impede a propagação do evento de clique para fora da barra lateral
+  });
+
+  // Adiciona um evento de clique ao documento inteiro
+  document.addEventListener("click", function(event) {
+    if (!event.target.closest('.sidebar')) {
+      sidebar.classList.remove('expanded'); // Remove a classe 'expanded' quando clicado fora da barra lateral
+    }
+  });
+
+
+
+
+
+
+
+
+// Event listener para o botão de trocar de conta
+document.getElementById("changeAccountBtn").addEventListener("click", changeAccount);
+
+// Event listener para o botão de sair
+document.getElementById("logoutBtn").addEventListener("click", logout);
+
+// Função para sair da conta
+function logout() {
+    firebase.auth().signOut().then(() => {
+    }).catch((error) => {
+        console.error('Erro ao fazer logout:', error);
+        // Se houver erro ao fazer logout, você pode lidar com isso aqui
+    });
+}
+
+// Função para trocar de conta
+function changeAccount() {
+    firebase.auth().signOut().then(() => {
+    }).catch((error) => {
+        console.error('Erro ao fazer logout:', error);
+        // Se houver erro ao fazer logout, você pode lidar com isso aqui
+    });
+}
+
+
+</script>
+
+</body>
+</html>
